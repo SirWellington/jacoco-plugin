@@ -1,16 +1,5 @@
 package hudson.plugins.jacoco;
 
-import hudson.model.BuildListener;
-import hudson.model.HealthReport;
-import hudson.model.HealthReportingAction;
-import hudson.model.Result;
-import hudson.model.AbstractBuild;
-import hudson.plugins.jacoco.model.Coverage;
-import hudson.plugins.jacoco.model.CoverageElement;
-import hudson.plugins.jacoco.model.CoverageElement.Type;
-import hudson.plugins.jacoco.model.CoverageObject;
-import hudson.plugins.jacoco.report.CoverageReport;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -23,6 +12,17 @@ import java.util.Map;
 import org.jacoco.core.analysis.IBundleCoverage;
 import org.jvnet.localizer.Localizable;
 import org.kohsuke.stapler.StaplerProxy;
+
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.HealthReport;
+import hudson.model.HealthReportingAction;
+import hudson.model.Result;
+import hudson.plugins.jacoco.model.Coverage;
+import hudson.plugins.jacoco.model.CoverageElement;
+import hudson.plugins.jacoco.model.CoverageElement.Type;
+import hudson.plugins.jacoco.model.CoverageObject;
+import hudson.plugins.jacoco.report.CoverageReport;
 
 /**
  * Build view extension by JaCoCo plugin.
@@ -52,7 +52,7 @@ public final class JacocoBuildAction extends CoverageObject<JacocoBuildAction> i
 
 	/**
 	 * The thresholds that applied when this build was built.
-	 * @TODO add ability to trend thresholds on the graph
+	 * TODO: add ability to trend thresholds on the graph
 	 */
 	private final JacocoHealthReportThresholds thresholds;
 
@@ -240,6 +240,37 @@ public final class JacocoBuildAction extends CoverageObject<JacocoBuildAction> i
 		return getPreviousResult(owner);
 	}
 
+	/**
+	 * @return A map which represents coverage objects and their status to show on build status page (summary.jelly).
+	 */
+	public Map<Coverage,Boolean> getCoverageRatios(){
+		CoverageReport result = getResult();
+		Map<Coverage,Boolean> ratios = new LinkedHashMap<Coverage,Boolean>();
+		if( result != null ) {
+			Coverage instructionCoverage = result.getInstructionCoverage();
+			Coverage classCoverage = result.getClassCoverage();
+			Coverage complexityScore = result.getComplexityScore();
+			Coverage branchCoverage = result.getBranchCoverage();
+			Coverage lineCoverage = result.getLineCoverage();
+			Coverage methodCoverage = result.getMethodCoverage();
+
+			instructionCoverage.setType(CoverageElement.Type.INSTRUCTION);			
+			classCoverage.setType(CoverageElement.Type.CLASS);
+			complexityScore.setType(CoverageElement.Type.COMPLEXITY);			
+			branchCoverage.setType(CoverageElement.Type.BRANCH);			
+			lineCoverage.setType(CoverageElement.Type.LINE);
+			methodCoverage.setType(CoverageElement.Type.METHOD);
+			
+			ratios.put(instructionCoverage,JacocoHealthReportThresholds.RESULT.BELLOWMINIMUM == thresholds.getResultByTypeAndRatio(instructionCoverage));
+			ratios.put(branchCoverage,JacocoHealthReportThresholds.RESULT.BELLOWMINIMUM == thresholds.getResultByTypeAndRatio(branchCoverage));
+			ratios.put(complexityScore,JacocoHealthReportThresholds.RESULT.BELLOWMINIMUM == thresholds.getResultByTypeAndRatio(complexityScore));
+			ratios.put(lineCoverage,JacocoHealthReportThresholds.RESULT.BELLOWMINIMUM == thresholds.getResultByTypeAndRatio(lineCoverage));
+			ratios.put(methodCoverage,JacocoHealthReportThresholds.RESULT.BELLOWMINIMUM == thresholds.getResultByTypeAndRatio(methodCoverage));
+			ratios.put(classCoverage,JacocoHealthReportThresholds.RESULT.BELLOWMINIMUM == thresholds.getResultByTypeAndRatio(classCoverage));
+		}
+		return ratios;
+	}
+	
 	/**
 	 * Gets the previous {@link JacocoBuildAction} of the given build.
 	 */
